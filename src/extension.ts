@@ -28,15 +28,33 @@ function createScriptContext(uri: vscode.Uri) {
     },
 
     getFunctionCode(f: (...args: any[]) => any) {
-      const str = f.toString();
+      let str = f.toString();
 
       if (str[str.length - 1] !== "}") {
         return str.replace(/^.+=> */, "");  // This is a lambda, just return its body.
       }
 
-      return str
+      str = str
         .slice(0, str.length - 1)               // Remove last '}'.
         .replace(/^.+\)[\s]*(=>[\s]*)?{/, "");  // Remove until first '{' (accounting for patterns).
+
+      if (str[0] === "\n") {
+        str = str.slice(1);
+      }
+
+      // De-indent string.
+      const lines = str.split("\n"),
+            indents = lines
+              .map((line) => (/^[\s]*[\S]/.exec(line)?.[0].length ?? 0) - 1)
+              .filter((i) => i > 0);
+
+      if (indents.length === 0) {
+        return str;
+      }
+
+      const minIndent = indents.reduce((min, curr) => Math.min(min, curr));
+
+      return lines.map((line) => line.slice(minIndent)).join("\n");
     },
   });
 }
